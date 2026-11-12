@@ -3,131 +3,264 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Aqua Monitor - Level Air</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Automatic Fire Pump Dashboard</title>
+
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
 <style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#0b1220;color:#edf5ff}
-main{max-width:900px;margin:auto;padding:22px}
-header{display:flex;align-items:center;gap:12px;margin-bottom:22px}
-.logo{background:#0e9f91;border-radius:15px;padding:14px;font-size:25px}
-h1{font-size:23px;margin:0}
-.muted{color:#94a3b8;font-size:13px;margin-top:6px}
-.status{margin-left:auto;color:#fbbf24;font-size:12px}
-.panel{background:#151f31;border:1px solid #29364a;border-radius:18px;padding:20px;margin-bottom:16px}
-.small{color:#94a3b8;font-size:13px}
-.big{font-size:42px;font-weight:bold;margin:10px 0}
-.teal{color:#5eead4}
-.bar{height:12px;background:#29364a;border-radius:20px;overflow:hidden;margin:18px 0}
-.fill{height:100%;width:72%;background:linear-gradient(90deg,#0ea5e9,#2dd4bf);transition:width .5s}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-.value{font-size:25px;font-weight:bold;margin-top:10px}
-.tank-wrap{display:flex;align-items:center;gap:25px}
-.tank{height:190px;width:105px;border:3px solid #7890ad;border-radius:15px 15px 22px 22px;overflow:hidden;display:flex;align-items:end;background:#0b1220}
-.water{width:100%;height:72%;background:linear-gradient(#38bdf8,#0369a1);transition:height .5s}
-button{border:0;border-radius:10px;background:#0e9f91;color:white;padding:12px 15px;font-weight:bold;cursor:pointer}
-input{width:100%;padding:12px;margin:10px 0;background:#0b1220;color:white;border:1px solid #40516a;border-radius:9px}
-@media(max-width:520px){main{padding:14px}.grid{grid-template-columns:1fr 1fr}.big{font-size:34px}.tank{height:150px;width:80px}.panel{padding:15px}}
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  background: #eef2f7;
+  color: #1e293b;
+}
+
+.container {
+  max-width: 850px;
+  margin: auto;
+}
+
+header {
+  background: #172554;
+  color: white;
+  padding: 24px;
+  border-radius: 15px;
+  margin-bottom: 18px;
+}
+
+h1 { margin: 0 0 10px; font-size: 23px; }
+.subtitle { color: #cbd5e1; font-size: 13px; }
+
+.connection {
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status {
+  font-weight: bold;
+  color: #dc2626;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 13px;
+  box-shadow: 0 2px 8px #0000000d;
+}
+
+.card h3 {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.value {
+  font-size: 27px;
+  font-weight: bold;
+  margin-top: 15px;
+}
+
+.normal { color: #16a34a; }
+.danger { color: #dc2626; }
+
+.system {
+  grid-column: span 2;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+}
+
+.system .value { font-size: 30px; }
+
+.footer {
+  margin-top: 18px;
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+@media(max-width: 500px) {
+  body { padding: 12px; }
+  .grid { gap: 9px; }
+  .card { padding: 14px; }
+  .value { font-size: 21px; }
+}
 </style>
 </head>
+
 <body>
-<main>
+<div class="container">
+
 <header>
- <div class="logo">💧</div>
- <div><h1>AQUA MONITOR</h1><div class="muted">IoT Water Tank Monitoring</div></div>
- <div class="status" id="connection">● DEMO</div>
+  <h1>🔥 AUTOMATIC FIRE PUMP</h1>
+  <div class="subtitle">IoT Monitoring System | ESP32 + MQTT</div>
 </header>
 
-<section class="panel">
- <div class="small">LEVEL AIR SAAT INI</div>
- <div class="tank-wrap">
-  <div style="flex:1">
-   <div class="big teal" id="percent">72%</div>
-   <div id="height">144 cm dari 200 cm</div>
-   <div class="bar"><div class="fill" id="bar"></div></div>
-   <div class="small" id="updated">Data contoh · belum terhubung</div>
+<div class="connection">
+  <strong>MQTT Connection</strong>
+  <span class="status" id="connection">CONNECTING...</span>
+</div>
+
+<div class="grid">
+
+  <div class="card">
+    <h3>MQ-2 SENSOR</h3>
+    <div class="value" id="mq2">--</div>
+    <small>Nilai ADC</small>
   </div>
-  <div class="tank"><div class="water" id="water"></div></div>
- </div>
-</section>
 
-<section class="grid">
- <div class="panel"><div class="small">JARAK SENSOR KE AIR</div><div class="value" id="distance">56 cm</div></div>
- <div class="panel"><div class="small">STATUS AIR</div><div class="value teal" id="levelStatus">NORMAL</div></div>
-</section>
+  <div class="card">
+    <h3>FLAME SENSOR</h3>
+    <div class="value normal" id="flame">--</div>
+    <small>Deteksi api</small>
+  </div>
 
-<section class="panel">
- <div style="font-weight:bold">Hubungkan ke MQTT</div>
- <div class="small">Broker WebSocket untuk menerima data langsung dari MQTTX/ESP32.</div>
- <input id="broker" value="wss://broker.emqx.io:8084/mqtt" aria-label="Alamat broker">
- <input id="topic" value="belajar/toren/dadan82" aria-label="Topik MQTT">
- <button onclick="connectMqtt()">Hubungkan</button>
- <button onclick="demo()" style="background:#334155">Data demo</button>
- <p class="small" id="message">Mode demo aktif.</p>
-</section>
+  <div class="card">
+    <h3>GAS / ASAP</h3>
+    <div class="value normal" id="gas">--</div>
+  </div>
 
-<section class="panel">
- <div style="font-weight:bold">Riwayat level air</div>
- <canvas id="chart" style="width:100%;height:180px"></canvas>
-</section>
-</main>
+  <div class="card">
+    <h3>WATER PUMP</h3>
+    <div class="value normal" id="pump">--</div>
+  </div>
+
+  <div class="card">
+    <h3>BUZZER</h3>
+    <div class="value normal" id="buzzer">--</div>
+  </div>
+
+  <div class="card system">
+    <h3>SYSTEM STATUS</h3>
+    <div class="value normal" id="system">WAITING</div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <strong>Topic:</strong>
+  <div>firepump/kelompok3/data</div>
+  <br>
+  <strong>Last Update:</strong>
+  <div id="lastUpdate">Belum ada data</div>
+  <br>
+  <strong>Received Message:</strong>
+  <div id="raw">Menunggu data ESP32...</div>
+</div>
+
+</div>
 
 <script>
-let client=null, history=[];
-function showData(d){
- const p=Math.max(0,Math.min(100,Number(d.level_percent)||0));
- const h=Math.max(0,Math.min(200,Number(d.level_cm)||0));
- document.getElementById('percent').textContent=p+'%';
- document.getElementById('height').textContent=h+' cm dari 200 cm';
- document.getElementById('distance').textContent=(Number(d.distance_cm)||0)+' cm';
- document.getElementById('levelStatus').textContent=d.status||'NORMAL';
- document.getElementById('bar').style.width=p+'%';
- document.getElementById('water').style.height=p+'%';
- document.getElementById('updated').textContent='Diperbarui: '+new Date().toLocaleTimeString('id-ID');
- history.push({time:new Date().toLocaleTimeString('id-ID'),value:p});
- if(history.length>20)history.shift();
- drawChart();
+const broker = "wss://broker.emqx.io:8084/mqtt";
+const topic = "firepump/kelompok3/data";
+
+const client = mqtt.connect(broker, {
+  clientId: "FirePumpDashboard_" +
+    Math.random().toString(16).substring(2, 10),
+  clean: true,
+  connectTimeout: 10000,
+  reconnectPeriod: 3000
+});
+
+const connection = document.getElementById("connection");
+
+client.on("connect", function() {
+  connection.textContent = "CONNECTED";
+  connection.style.color = "#16a34a";
+
+  client.subscribe(topic, function(err) {
+    if (err) {
+      connection.textContent = "SUBSCRIBE ERROR";
+      connection.style.color = "#dc2626";
+    }
+  });
+});
+
+client.on("reconnect", function() {
+  connection.textContent = "RECONNECTING...";
+  connection.style.color = "#d97706";
+});
+
+client.on("offline", function() {
+  connection.textContent = "OFFLINE";
+  connection.style.color = "#dc2626";
+});
+
+client.on("error", function(err) {
+  console.error("MQTT Error:", err);
+});
+
+function updateValue(id, value, isDanger) {
+  const element = document.getElementById(id);
+  element.textContent = value;
+  element.className = "value " +
+    (isDanger ? "danger" : "normal");
 }
-function connectMqtt(){
- if(typeof mqtt==='undefined'){alert('Library MQTT belum termuat. Periksa internet lalu muat ulang halaman.');return;}
- if(client)client.end();
- const broker=document.getElementById('broker').value.trim();
- const topic=document.getElementById('topic').value.trim();
- document.getElementById('message').textContent='Mencoba terhubung...';
- client=mqtt.connect(broker,{clientId:'toren_web_'+Math.random().toString(16).slice(2,10),connectTimeout:10000,reconnectPeriod:3000});
- client.on('connect',()=>{
-  document.getElementById('connection').textContent='● ONLINE';
-  document.getElementById('connection').style.color='#5eead4';
-  document.getElementById('message').textContent='Terhubung. Menunggu data level air...';
-  client.subscribe(topic);
- });
- client.on('message',(t,payload)=>{
-  try{showData(JSON.parse(payload.toString()));document.getElementById('message').textContent='Data diterima dari '+t;}
-  catch(e){document.getElementById('message').textContent='Pesan diterima tetapi format bukan JSON yang valid.';}
- });
- client.on('error',()=>{document.getElementById('connection').textContent='● ERROR';document.getElementById('message').textContent='Koneksi gagal. Periksa broker dan jaringan.';});
- client.on('close',()=>{document.getElementById('connection').textContent='● OFFLINE';});
-}
-function demo(){
- showData({distance_cm:56,level_cm:144,level_percent:72,status:'NORMAL'});
- document.getElementById('connection').textContent='● DEMO';
- document.getElementById('connection').style.color='#fbbf24';
- document.getElementById('message').textContent='Menampilkan data simulasi.';
-}
-function drawChart(){
- const c=document.getElementById('chart'),ctx=c.getContext('2d');
- const w=c.clientWidth,h=180,dpr=window.devicePixelRatio||1;
- c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);
- ctx.strokeStyle='#334155';ctx.fillStyle='#94a3b8';ctx.font='11px Arial';
- for(let i=0;i<=4;i++){let y=12+i*(h-28)/4;ctx.beginPath();ctx.moveTo(28,y);ctx.lineTo(w-5,y);ctx.stroke();ctx.fillText(100-i*25+'%',0,y+4);}
- if(history.length<1)return;
- ctx.strokeStyle='#2dd4bf';ctx.lineWidth=2;ctx.beginPath();
- history.forEach((v,i)=>{let x=30+i*(w-40)/Math.max(19,history.length-1),y=12+(100-v.value)*(h-28)/100;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
- ctx.stroke();
-}
-window.addEventListener('resize',drawChart);
-demo();
+
+client.on("message", function(receivedTopic, message) {
+  const raw = message.toString();
+  document.getElementById("raw").textContent = raw;
+
+  try {
+    const data = JSON.parse(raw);
+
+    document.getElementById("mq2").textContent =
+      data.mq2 ?? "--";
+
+    updateValue(
+      "flame",
+      data.flame ?? "--",
+      data.flame === "DETECTED"
+    );
+
+    updateValue(
+      "gas",
+      data.gas ?? "--",
+      data.gas === "DETECTED"
+    );
+
+    updateValue(
+      "pump",
+      data.pump ?? "--",
+      data.pump === "ON"
+    );
+
+    updateValue(
+      "buzzer",
+      data.buzzer ?? "--",
+      data.buzzer === "ON"
+    );
+
+    updateValue(
+      "system",
+      data.system ?? "--",
+      data.system === "DANGER"
+    );
+
+    document.getElementById("lastUpdate").textContent =
+      new Date().toLocaleString("id-ID");
+
+  } catch (error) {
+    console.error("Format JSON tidak valid:", error);
+  }
+});
 </script>
+
 </body>
 </html>
